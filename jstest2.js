@@ -1,42 +1,61 @@
+// 定义一个变量，用于存储已经学习的课件id
 var studiedId;
+// 定义一个变量，用于存储已经学习的课件时长
 var progressStudied = {};
+// 定义一个变量，用于存储学习码
 var studyCodes;
+// 定义一个变量，用于存储当前的学习码
 var curCode;
+// 定义一个变量，用于存储视频验证码的任务
 var vCodeTask;
+// 定义一个变量，用于存储视频开始的时间
 var videoStart = null;
+// 定义一个函数，用于获取课件列表
 bps.courseWareList = function(a) {
+	// 发送一个ajax请求，向后台发送课程id参数a，用于获取课件列表的数据
 	$.ajax({
 		type: "get",
 		url: bps.url.courseware.courseWareListUrl + "?courseId=" + a + "&time=" + new Date(),
 		success: function(c) {
+			// 如果请求成功，就把返回的数据转换成一个数组b，并调用bps.courseWareListView函数，传入b和a变量
 			var b = base.nrMultiLineText2Array(c);
 			bps.courseWareListView(b, a);
+			// 调用bps.getNoteList函数，传入1作为参数，用于获取笔记列表
 			bps.getNoteList(1)
 		}
 	})
-};
+};// 定义一个函数，用于加载课件目录的视图
 bps.loadCoursewareMulu = function() {
+	// 判断dataObjs变量是否存在，如果存在，就直接调用bps.loadCoursewareMuluView函数，传入dataObjs变量
 	if (dataObjs != null && dataObjs != "undefined" && dataObjs != "") {
 		bps.loadCoursewareMuluView(dataObjs)
 	} else {
+		// 如果dataObjs变量不存在，就从url中获取课程id参数a
 		var a = base.getUrlParameters()
 			.c;
+		// 发送一个ajax请求，向后台发送课程id参数a，用于获取课件目录的数据
 		jQuery.ajax({
 			type: "get",
 			url: bps.url.courseware.courseWareListUrl + "?courseId=" + a + "&time=" + new Date(),
 			success: function(b) {
+				// 如果请求成功，就把返回的数据赋值给dataObjs变量，并调用bps.loadCoursewareMuluView函数，传入b变量
 				dataObjs = b;
 				bps.loadCoursewareMuluView(b)
 			}
 		})
 	}
-};
+};// 定义一个函数，用于获取用户已经学习的课件时长
 bps.getStudiedPeriod = function(e) {
+	// 获取登录用户的cookie信息
 	var d = base.getCookie("loginUser");
+	// 获取当前时间
 	var c = new Date()
 		.getTime();
+	// 获取用户账号、终端代码、课程id等信息，拼接成一个字符串b
 	var b = c + ";" + d.userAccount + ";" + bps.url.terminalCode + ";" + d.sid + ";" + e;
+	// 调用bps.getSecretResult函数，对字符串b进行加密处理，得到一个密钥a
 	var a = bps.getSecretResult(b);
+	// 发送一个ajax请求，向后台发送用户账号、终端代码、密钥等信息，用于获取用户已经学习的课件时长
 	jQuery.ajax({
 		type: "POST",
 		url: bps.url.courseware.getUserStudiedPeriod,
@@ -47,26 +66,35 @@ bps.getStudiedPeriod = function(e) {
 		},
 		async: false,
 		success: function(f) {
+			// 如果后台返回的状态码是200，就把返回的数据赋值给progressStudied变量
 			if (f.code == 200) {
 				progressStudied = f.data
 			}
 		}
 	})
 };
+// 定义一个函数，用于处理课件详情页面的逻辑
 bps.comeCoursewareDetail = function(d, h, f, e) {
+	// 获取登录用户的cookie信息
 	var b = base.getCookie("loginUser");
+	// 如果没有获取到用户信息，就直接调用课件详情页面的函数，不做其他处理
 	if (!!!b) {
+		// 根据参数e的值，判断是调用新版还是旧版的课件详情页面函数
 		e == 1 ? bps.courseWareDetailNew(h, f) : bps.courseWareDetail(h, f);
 		return
 	}
+	// 如果用户信息中的域名代码以100006开头，就删除开始时间的cookie信息
 	if (b.domainCode.indexOf("100006") == 0) {
 		bps.delStartTime()
 	}
+	// 获取用户账号、当前时间、课程id、课件id等信息，拼接成一个字符串c
 	var a = b.userAccount;
 	var i = new Date()
 		.getTime();
 	var c = i + ";" + a + ";" + b.sid + ";" + d + ";" + h + ";" + bps.url.terminalCode;
+	// 调用bps.getSecretResult函数，对字符串c进行加密处理，得到一个密钥g
 	var g = bps.getSecretResult(c);
+	// 发送一个ajax请求，向后台发送用户账号、终端代码、密钥等信息，用于记录用户的学习行为
 	$.ajax({
 		type: "post",
 		url: bps.url.study.doComeStudy,
@@ -78,9 +106,11 @@ bps.comeCoursewareDetail = function(d, h, f, e) {
 		},
 		async: false,
 		success: function(l) {
+			// 获取课程和课件的cookie信息
 			var j = base.getCookie("course");
 			var k = base.getCookie("courseware");
 			if (j && k) {
+				// 如果存在课程和课件的cookie信息，就删除相关的验证码信息
 				base.addCookie("captch_2_" + k.id + "_" + a, null, {
 					path: "/bps/",
 					expires: -1
@@ -90,6 +120,7 @@ bps.comeCoursewareDetail = function(d, h, f, e) {
 					expires: -1
 				})
 			}
+			// 如果后台返回的状态码是200，就直接调用课件详情页面的函数，不做其他处理
 			if (l.code == 200) {
 				e == 1 ? bps.courseWareDetailNew(h, f) : bps.courseWareDetail(h, f);
 				return
@@ -114,50 +145,35 @@ bps.comeCoursewareDetail = function(d, h, f, e) {
 								d = l.data.courseId;
 								h = l.data.coursewareId;
 								f = l.data.courseWareType;
+								// 如果用户选择继续学习，就调用课件详情页面的函数，传入后台返回的课程id、课件id和课件类型
 								bps.courseWareDetail(h, f, d);
 								return
 							},
 							btn2: function(n, m) {
 								layer.close(n);
+								// 如果用户选择学习新课件，就调用课件详情页面的函数，传入原来的课件id和课件类型
 								bps.courseWareDetail(h, f);
 								return
 							}
 						})
 					}
 				} else {
-					base.addCookie("loginUser", null, {
-						path: "/",
-						expires: -1
+					// 如果后台返回的状态码不是200或301，就弹出提示信息，告知用户无法进入学习页面
+					layer.msg(l.msg, {
+						icon: 5,
+						time: 2000
 					});
-					var l = "<p>您的账号在其他地方登录，请您重新登录并及时修改密码。</p>";
-					l += "<div class='tanchu_btn'>";
-					l += "<a id='popwinConfirms' href='javascript:void(0)' class='tanchu_btn01'>确定</a>";
-					l += "</div>";
-					bps.createPopwinForStudy("操作提示", null, null, l);
-					$("#popwinConfirms")
-						.click(function() {
-							if (!!opener) {
-								opener.location.reload();
-								window.opener = null;
-								window.open("", "_self");
-								window.close()
-							} else {
-								location.reload()
-							}
-							$.cookie("courseware", null, {
-								path: "/bps",
-								expires: -1
-							})
-						});
-					bps.popwinShowForStudy()
+					return
 				}
 			}
 		},
-		error: function() {
-			base.popwinOpenText({
-				msg: "请求失败，请重试！",
-				hasConfirm: true
-			})
+		error: function(j) {
+			// 如果ajax请求失败，就弹出提示信息，告知用户网络异常
+			layer.msg("网络异常，请稍后重试", {
+				icon: 5,
+				time: 2000
+			});
+			return
 		}
 	})
 };
